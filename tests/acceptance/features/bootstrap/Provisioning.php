@@ -919,6 +919,7 @@ trait Provisioning {
 	 * @return bool
 	 */
 	public function groupExists($group) {
+		$group = \strtr($group, ['%' => '%2525', '/' => '%252F', '#' => '%23', '?' => '%3F']);
 		$fullUrl = $this->getBaseUrl() . "/ocs/v2.php/cloud/groups/$group";
 		$client = new Client();
 		$options = [];

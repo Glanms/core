@@ -17,9 +17,26 @@ So that I can manage user access to group resources
 		And the HTTP status code should be "200" 
 		And user "brand-new-user" should not belong to group "<group_id>"
 		Examples:
-			| group_id  |
-			| new-group |
-			| 0         |
+			| group_id            | comment                                 |
+			| new-group           | dash                                    |
+			| the.group           | dot                                     |
+			| España              | special European characters             |
+			| नेपाली              | Unicode group name                      |
+			| 0                   | The "false" group                       |
+			| Finance (NP)        | Space and brackets                      |
+			| Admin&Finance       | Ampersand                               |
+			| admin:Pokhara@Nepal | Colon and @                             |
+			| maintenance#123     | Hash sign                               |
+			| maint+eng           | Plus sign                               |
+			| $x<=>[y*z^2]!       | Maths symbols                           |
+			| Mgmt\Middle         | Backslash                               |
+			| Mgmt/Sydney         | Slash (special escaping happens)        |
+			| Mgmt//NSW/Sydney    | Multiple slash                          |
+			| 50%pass             | Percent sign (special escaping happens) |
+			| 50%25=0             | %25 literal looks like an escaped "%"   |
+			| 50%2Eagle           | %2E literal looks like an escaped "."   |
+			| 50%2Fix             | %2F literal looks like an escaped slash |
+			| staff?group         | Question mark                           |
 
 		Scenario: removing a user from a group which doesn't exist
 		Given user "brand-new-user" has been created

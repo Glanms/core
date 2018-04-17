@@ -1675,6 +1675,106 @@ class ManagerTest extends \Test\TestCase {
 		$this->assertEquals($expected, !$exception);
 	}
 
+	public function provideTransferShareData() {
+		return [
+			['oldShareOwner', 'newShareOwner', '/transferred from oldShareOwner on 12345', 'myPath'],
+		];
+	}
+
+	/**
+	 * @dataProvider provideTransferShareData
+	 */
+	public function testTransferShare($oldShareOwner, $newShareOwner, $finalTarget, $file) {
+		$manager = $this->createManagerMock()
+			->setMethods(['canShare', 'generalCreateChecks', 'userCreateChecks', 'pathCreateChecks'])
+			->getMock();
+
+		$shareNewOwner = $this->createMock(IUser::class);
+		$shareNewOwner->method('getUID')->willReturn($newShareOwner);
+
+		$shareOwner = $this->createMock('\OCP\IUser');
+		$shareOwner->method('getUID')->willReturn($oldShareOwner);
+
+		$storage = $this->createMock('\OCP\Files\Storage');
+		$path = $this->createMock('\OCP\Files\File');
+		$path->method('getOwner')->willReturn($shareOwner);
+		$path->method('getName')->willReturn($finalTarget);
+		$path->method('getStorage')->willReturn($storage);
+
+		$share = $this->manager->newShare();
+		/*$share = $this->createShare(
+			null,
+			\OCP\Share::SHARE_TYPE_USER,
+			$path,
+			'sharedWith',
+			'sharedBy',
+			null,
+			\OCP\Constants::PERMISSION_ALL);*/
+		//$node = $this->createMock('\OCP\Files\File');
+		$path->method('getId')->willReturn(100);
+		$path->method('getPath')->willReturn('/'.$newShareOwner.'/files/'. $finalTarget. '/'. $file);
+		$share->setProviderId('foo')
+			->setId('42')
+			->setShareType(\OCP\Share::SHARE_TYPE_LINK)
+			->setSharedBy($oldShareOwner)
+			->setShareOwner($oldShareOwner)
+			->setNode($path)
+			->setTarget('/'.$file)
+			->setPassword('pass')
+			->setPermissions(15);
+
+		$manager->expects($this->any())
+			->method('canShare')
+			->with($share)
+			->willReturn(true);
+		$manager->expects($this->any())
+			->method('generalCreateChecks')
+			->with($share);;
+		$manager->expects($this->any())
+			->method('userCreateChecks')
+			->with($share);
+		$manager->expects($this->any())
+			->method('pathCreateChecks')
+			->with($path);
+
+		$this->defaultProvider
+			->expects($this->any())
+			->method('create')
+			->with($share)
+			->will($this->returnArgument(0));
+
+		$this->defaultProvider
+			->expects($this->any())
+			->method('getShareById')
+			->willReturn($share);
+
+		$this->defaultProvider
+			->expects($this->any())
+			->method('update')
+			->willReturn($share);
+
+		$this->config
+			->method('getAppValue')
+			->will($this->returnValueMap([
+				['core', 'shareapi_allow_links', 'yes', 'yes'],
+				['core', 'shareapi_allow_public_upload', 'yes', 'yes'],
+			]));
+
+		$hookListner = $this->getMockBuilder('Dummy')->setMethods(['listner'])->getMock();
+		\OCP\Util::connectHook('\OC\Share', 'verifyPassword', $hookListner, 'listner');
+		$hookListner->expects($this->any())
+			->method('listner')
+			->will($this->returnCallback(function (array $array) {
+				$array['accepted'] = true;
+				$array['message'] = 'password accepted';
+			}));
+
+		$newShare = $manager->createShare($share);
+
+		$finalTarget = $finalTarget . '/' . $file;
+		$manager->transferShares($newShare, $oldShareOwner, $newShareOwner, ['finalTarget' => $finalTarget]);
+	}
+
 	public function testCreateShareUser() {
 		$manager = $this->createManagerMock()
 			->setMethods(['canShare', 'generalCreateChecks', 'userCreateChecks', 'pathCreateChecks'])

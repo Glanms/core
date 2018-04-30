@@ -950,7 +950,7 @@ class Share20OCS {
 			$i++;
 		}
 
-		$share->setTarget(\basename($pathAttempt));
+		$share->setTarget($pathAttempt);
 
 		return $share;
 	}
